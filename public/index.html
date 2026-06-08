@@ -5,18 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Email Validation Regex That Works in the Real World</title>
 <meta name="description" content="The email validation regex you should actually use, backed by analysis of 5.28 million real addresses. RFC 5321 vs 5322, a live regex tester, an annotated cookbook, and a log-redaction playground.">
-<link rel="canonical" href="https://realworldemailregex.com/">
+<link rel="canonical" href="https://emailregex.honestcode.software/">
 <meta name="author" content="Adam Z. Wasserman">
 
 <!-- Open Graph / Twitter -->
 <meta property="og:type" content="article">
 <meta property="og:title" content="The Real-World Email Regex">
 <meta property="og:description" content="The email regex you should actually use, backed by analysis of 5.28 million real addresses. Live tester, annotated cookbook, redaction playground.">
-<meta property="og:url" content="https://realworldemailregex.com/">
+<meta property="og:url" content="https://emailregex.honestcode.software/">
 <meta property="og:site_name" content="Honest">
+<meta property="og:image" content="https://emailregex.honestcode.software/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Real-World Email Regex, backed by 5.28 million real addresses.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="The Real-World Email Regex">
 <meta name="twitter:description" content="The email regex you should actually use, backed by analysis of 5.28 million real addresses.">
+<meta name="twitter:image" content="https://emailregex.honestcode.software/og.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,10 +36,17 @@
   "headline": "The Real-World Email Regex",
   "alternativeHeadline": "Email Validation Regex That Works in the Real World",
   "description": "The email validation regex you should actually use, backed by analysis of 5.28 million real addresses. RFC 5321 supersedes 5322 for practical SMTP validation.",
-  "author": { "@type": "Person", "name": "Adam Z. Wasserman", "url": "https://adamzacharywasserman.com" },
-  "publisher": { "@type": "Organization", "name": "Honest" },
-  "mainEntityOfPage": "https://realworldemailregex.com/",
-  "keywords": "email regex, email validation regex, RFC 5321, RFC 5322, email address validation, regex cookbook",
+  "author": {
+    "@type": "Person",
+    "name": "Adam Z. Wasserman",
+    "url": "https://adamzacharywasserman.com",
+    "sameAs": ["https://adamzacharywasserman.com", "https://hackernoon.com/u/azw", "https://github.com/adamzwasserman"]
+  },
+  "publisher": { "@type": "Organization", "name": "Honest", "url": "https://honestcode.software" },
+  "mainEntityOfPage": "https://emailregex.honestcode.software/",
+  "datePublished": "2026-06-08",
+  "dateModified": "2026-06-08",
+  "keywords": "email regex, email validation regex, RFC 5321, RFC 5322, email address validation, regex cookbook, email regex python, email regex javascript",
   "proficiencyLevel": "Expert"
 }
 </script>
@@ -82,7 +94,37 @@
       "@type": "Question",
       "name": "Can regex match balanced parentheses?",
       "acceptedAnswer": { "@type": "Answer", "text": "Not with a formally regular expression. Balanced parentheses form the Dyck language, which is context-free, not regular, and the pumping lemma proves no finite automaton can count nesting depth. Engines that extend beyond regular languages can: PCRE and Perl through recursion with (?&name), and .NET through balancing groups. JavaScript has neither, so you must either unroll to a fixed depth or, better, count with a one-pass linear scan." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is a plus sign valid in an email address?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. A plus sign is legal in the mailbox under RFC 5321, and Gmail and others use it for sub-addressing. It is rare in practice (about 0.00051% of real addresses), so a strict realistic regex may omit it; if you support plus-addressing, include it in the mailbox character class." }
+    },
+    {
+      "@type": "Question",
+      "name": "Are email addresses case sensitive?",
+      "acceptedAnswer": { "@type": "Answer", "text": "The domain is case insensitive. The mailbox is technically case sensitive per RFC 5321, but in practice almost every provider treats it case insensitively. For validation, accept both cases; for storage and comparison, lowercase the domain and, pragmatically, the whole address." }
+    },
+    {
+      "@type": "Question",
+      "name": "What is the best email validation regex in JavaScript?",
+      "acceptedAnswer": { "@type": "Answer", "text": "In JavaScript use /^[A-Za-z0-9](?:[A-Za-z0-9-]|\\.(?!\\.)){0,62}[A-Za-z0-9]@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$/ and call .test(value). It matches ASCII alphanumeric, single dots, and dashes, covering better than 99.999% of real addresses. Confirm the address exists with a verification email." }
     }
+  ]
+}
+</script>
+
+<!-- Structured data: HowTo -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  "name": "How to validate an email address with regex",
+  "description": "A practical, real-world approach to email validation: match the address shape with a regex, then confirm it exists with a verification email.",
+  "step": [
+    { "@type": "HowToStep", "name": "Match the shape", "text": "Use a regex that matches ASCII alphanumeric characters, single dots, and dashes in the mailbox, an @ sign, and a DNS-parsable domain. This covers better than 99.999% of real addresses." },
+    { "@type": "HowToStep", "name": "Reject only impossible inputs", "text": "Do not chase RFC 5322 edge cases such as comments or folded whitespace. They essentially never occur and add fragility." },
+    { "@type": "HowToStep", "name": "Confirm existence out of band", "text": "Send a unique verification link (fire-and-forget). Regex proves shape, not existence. This is the only reliable way to know an address is real." }
   ]
 }
 </script>
@@ -96,6 +138,7 @@
     <a class="wordmark" href="/">honest<span class="cursor">_</span></a>
     <nav class="topnav" aria-label="Section navigation">
       <a href="#workbench">Tester</a>
+      <a href="#languages">Languages</a>
       <a href="#thesis">5321 vs 5322</a>
       <a href="#research">The data</a>
       <a href="#cookbook">Cookbook</a>
@@ -173,6 +216,87 @@
     </div>
   </section>
 
+  <!-- ============ LANGUAGES ============ -->
+  <section id="languages" class="wrap section">
+    <h2>The email regex in every language</h2>
+    <p class="section-intro">
+      The realistic pattern, ready to paste, in the language you are working in. Same rule everywhere:
+      ASCII alphanumeric, single dots, and dashes in the mailbox, then a DNS domain. Two languages
+      need real care, and the snippets below get it right.
+    </p>
+
+    <figure class="codecard">
+      <figcaption>JavaScript / TypeScript</figcaption>
+      <pre><code id="lang-js">const EMAIL = /^[A-Za-z0-9](?:[A-Za-z0-9-]|\.(?!\.)){0,62}[A-Za-z0-9]@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$/;
+
+EMAIL.test(value);   // true / false</code></pre>
+      <button class="copy-btn" data-copy-target="lang-js">copy</button>
+    </figure>
+
+    <figure class="codecard">
+      <figcaption>Python (use fullmatch, not match)</figcaption>
+      <pre><code id="lang-py">import re
+
+EMAIL = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]|\.(?!\.)){0,62}[A-Za-z0-9]@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}")
+
+bool(EMAIL.fullmatch(value))   # fullmatch anchors both ends</code></pre>
+      <button class="copy-btn" data-copy-target="lang-py">copy</button>
+    </figure>
+
+    <figure class="codecard">
+      <figcaption>Java (note the doubled backslashes)</figcaption>
+      <pre><code id="lang-java">import java.util.regex.Pattern;
+
+static final Pattern EMAIL = Pattern.compile(
+  "^[A-Za-z0-9](?:[A-Za-z0-9-]|\\.(?!\\.)){0,62}[A-Za-z0-9]@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$");
+
+EMAIL.matcher(value).matches();</code></pre>
+      <button class="copy-btn" data-copy-target="lang-java">copy</button>
+    </figure>
+
+    <figure class="codecard">
+      <figcaption>Go (RE2 has no lookahead, so this is a structural variant)</figcaption>
+      <pre><code id="lang-go">// Go's regexp (RE2) does not support (?!...). Forbid double dots by
+// structure instead: alphanumeric runs separated by single . or -.
+var email = regexp.MustCompile(`^[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*@(?:[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.)+[A-Za-z]{2,63}$`)
+
+email.MatchString(value)</code></pre>
+      <button class="copy-btn" data-copy-target="lang-go">copy</button>
+    </figure>
+
+    <figure class="codecard">
+      <figcaption>PHP (PCRE, lookahead supported)</figcaption>
+      <pre><code id="lang-php">$re = '/^[A-Za-z0-9](?:[A-Za-z0-9-]|\.(?!\.)){0,62}[A-Za-z0-9]@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$/';
+
+(bool) preg_match($re, $value);</code></pre>
+      <button class="copy-btn" data-copy-target="lang-php">copy</button>
+    </figure>
+
+    <figure class="codecard">
+      <figcaption>C# / .NET (verbatim string)</figcaption>
+      <pre><code id="lang-cs">using System.Text.RegularExpressions;
+
+Regex.IsMatch(value,
+  @"^[A-Za-z0-9](?:[A-Za-z0-9-]|\.(?!\.)){0,62}[A-Za-z0-9]@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$");</code></pre>
+      <button class="copy-btn" data-copy-target="lang-cs">copy</button>
+    </figure>
+
+    <figure class="codecard">
+      <figcaption>Ruby (use \A and \z, never ^ and $)</figcaption>
+      <pre><code id="lang-rb"># In Ruby ^ and $ match line boundaries, so a newline can sneak an
+# injection past them. Anchor with \A and \z instead.
+EMAIL = /\A[A-Za-z0-9](?:[A-Za-z0-9-]|\.(?!\.)){0,62}[A-Za-z0-9]@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}\z/
+
+!!(value =~ EMAIL)</code></pre>
+      <button class="copy-btn" data-copy-target="lang-rb">copy</button>
+    </figure>
+
+    <p class="fineprint">
+      Whichever language you use, the regex proves shape, not existence. Pair it with a verification
+      email before you trust an address.
+    </p>
+  </section>
+
   <!-- ============ THESIS ============ -->
   <section id="thesis" class="wrap section">
     <h2>RFC 5321 supersedes RFC 5322</h2>
@@ -217,8 +341,10 @@
     <div class="stat-callout" id="key-statistic">
       <p class="stat-big">82% &rarr; 97% &rarr; ~100%</p>
       <p class="stat-explain">
-        Across <strong>5,280,739 real email addresses</strong>: 82% contain only ASCII alphanumeric
-        characters; a further 15% add only dots (97% total); a final 3% add only dashes (a rounded 100%).
+        According to Adam Z. Wasserman's analysis of <strong>5,280,739 real email addresses</strong>,
+        82% contain only ASCII alphanumeric characters, 97% contain only ASCII alphanumeric characters
+        plus dots, and approximately 100% contain only ASCII alphanumeric characters, dots, and dashes.
+        In other words, a further 15% add only dots, and a final 3% add only dashes.
       </p>
       <p class="stat-method">
         Sample drawn from 115 million accounts. 99% confidence level, 0.055% margin of error for the
@@ -543,6 +669,30 @@ EMAIL = re.compile(r"""
         (<code>(?&amp;name)</code>), and .NET via balancing groups. JavaScript has neither, so in the
         browser you must either unroll to a fixed depth or, better, count with a one-pass linear scan.
         See <a href="#balancing-parens">balancing parentheses</a> above.
+      </p>
+
+      <h3>Is a plus sign valid in an email address?</h3>
+      <p>
+        Yes. A plus sign is legal in the mailbox under RFC 5321, and Gmail and others use it for
+        sub-addressing (<code>you+tag@gmail.com</code>). It is rare in real data (about 0.00051% of
+        addresses), so the strict realistic pattern omits it; if you support plus-addressing, add
+        <code>+</code> to the mailbox character class, or switch the tester to ludicrous speed to see
+        it accepted.
+      </p>
+
+      <h3>Are email addresses case sensitive?</h3>
+      <p>
+        The domain is case insensitive. The mailbox is technically case sensitive per RFC 5321, but in
+        practice nearly every provider treats it case insensitively. Validate both cases; when storing
+        and comparing, lowercase the domain, and pragmatically the whole address.
+      </p>
+
+      <h3>What is the best email validation regex in JavaScript?</h3>
+      <p>
+        Use the realistic pattern and call <code>.test()</code>. It matches ASCII alphanumeric, single
+        dots, and dashes, which covers better than 99.999% of real addresses. Copy it (and the Python,
+        Java, Go, PHP, C#, and Ruby versions) from <a href="#languages">the email regex in every
+        language</a> above.
       </p>
 
       <h3>How do I redact emails from large log files quickly?</h3>

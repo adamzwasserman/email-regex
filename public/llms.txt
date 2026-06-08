@@ -41,4 +41,5 @@ JavaScript regex has neither recursion nor balancing groups. The pragmatic answe
 ## Source
 
 Original article: On the Practicality of Regex for Email Address Processing (HackerNoon).
-Interactive version: https://realworldemailregex.com/
+Interactive version: https://emailregex.honestcode.software/
+Full content as Markdown: https://emailregex.honestcode.software/index.md
