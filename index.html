@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Email Validation Regex That Works in the Real World</title>
+<meta name="description" content="The email validation regex you should actually use, backed by analysis of 5.28 million real addresses. RFC 5321 vs 5322, a live regex tester, an annotated cookbook, and a log-redaction playground.">
+<link rel="canonical" href="https://realworldemailregex.com/">
+<meta name="author" content="Adam Z. Wasserman">
+
+<!-- Open Graph / Twitter -->
+<meta property="og:type" content="article">
+<meta property="og:title" content="The Real-World Email Regex">
+<meta property="og:description" content="The email regex you should actually use, backed by analysis of 5.28 million real addresses. Live tester, annotated cookbook, redaction playground.">
+<meta property="og:url" content="https://realworldemailregex.com/">
+<meta property="og:site_name" content="Honest">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The Real-World Email Regex">
+<meta name="twitter:description" content="The email regex you should actually use, backed by analysis of 5.28 million real addresses.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Literata:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+
+<!-- Structured data: TechArticle -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "The Real-World Email Regex",
+  "alternativeHeadline": "Email Validation Regex That Works in the Real World",
+  "description": "The email validation regex you should actually use, backed by analysis of 5.28 million real addresses. RFC 5321 supersedes 5322 for practical SMTP validation.",
+  "author": { "@type": "Person", "name": "Adam Z. Wasserman", "url": "https://adamzacharywasserman.com" },
+  "publisher": { "@type": "Organization", "name": "Honest" },
+  "mainEntityOfPage": "https://realworldemailregex.com/",
+  "keywords": "email regex, email validation regex, RFC 5321, RFC 5322, email address validation, regex cookbook",
+  "proficiencyLevel": "Expert"
+}
+</script>
+
+<!-- Structured data: the primary-research statistic, as a citable Dataset -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  "name": "Character distribution of real-world email mailbox names",
+  "description": "Analysis of 5,280,739 email addresses showing that 82% use only ASCII alphanumeric characters, 97% use only ASCII alphanumeric plus dots, and ~100% use only ASCII alphanumeric, dots, and dashes. 99% confidence level, 0.055% margin of error.",
+  "creator": { "@type": "Person", "name": "Adam Z. Wasserman" },
+  "variableMeasured": "Character classes present in email mailbox names",
+  "measurementTechnique": "Frequency analysis of a 5.28M-address sample"
+}
+</script>
+
+<!-- Structured data: FAQ -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Can you validate an email address with regex?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes, for practical purposes. RFC 5321 restricts the domain portion of an SMTP address to ASCII letters, digits, and hyphens, which is straightforward to match. The mailbox portion has more latitude, but real-world data shows that matching ASCII alphanumeric characters, dots, and dashes covers better than 99.999% of consumer email addresses." }
+    },
+    {
+      "@type": "Question",
+      "name": "Should I use RFC 5321 or RFC 5322 for email validation?",
+      "acceptedAnswer": { "@type": "Answer", "text": "RFC 5321 supersedes RFC 5322 for the practical question of what constitutes a valid SMTP email address. RFC 5322 treats an email address as a generic message header and permits comments and folded whitespace; RFC 5321 restricts the domain to ASCII letters, digits, and hyphens. For real SMTP delivery, RFC 5321 has the final word." }
+    },
+    {
+      "@type": "Question",
+      "name": "What email regex should I actually use?",
+      "acceptedAnswer": { "@type": "Answer", "text": "For most signup, contact-form, and log-parsing use cases, match ASCII alphanumeric characters, single dots, and dashes in the mailbox, an @ sign, and a DNS-parsable domain. This achieves five-nines accuracy against real-world addresses. To confirm an address actually exists, send a verification link (fire-and-forget) rather than relying on the regex alone." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is it worth validating every RFC 5322 edge case?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. Edge cases such as quoted strings, parenthesised comments, and folded whitespace are theoretically valid but occur with infinitesimal frequency in the wild. In a sample of 5.28 million addresses, exactly one contained Unicode characters. Scoping the regex to real-world inputs is the simplest thing that could possibly work." }
+    },
+    {
+      "@type": "Question",
+      "name": "Can regex match balanced parentheses?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Not with a formally regular expression. Balanced parentheses form the Dyck language, which is context-free, not regular, and the pumping lemma proves no finite automaton can count nesting depth. Engines that extend beyond regular languages can: PCRE and Perl through recursion with (?&name), and .NET through balancing groups. JavaScript has neither, so you must either unroll to a fixed depth or, better, count with a one-pass linear scan." }
+    }
+  ]
+}
+</script>
+</head>
+<body data-theme="dark">
+
+<a class="skip-link" href="#workbench">Skip to the tester</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="wordmark" href="/">honest<span class="cursor">_</span></a>
+    <nav class="topnav" aria-label="Section navigation">
+      <a href="#workbench">Tester</a>
+      <a href="#thesis">5321 vs 5322</a>
+      <a href="#research">The data</a>
+      <a href="#cookbook">Cookbook</a>
+      <a href="#ludicrous">Ludicrous</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle light and dark theme">◐</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ============ HERO ============ -->
+  <section class="hero wrap">
+    <p class="eyebrow">// an honest tool</p>
+    <h1>The Real-World Email Regex</h1>
+    <p class="lede">
+      Most email-regex advice is a tour of RFC 5322 edge cases that never occur in real life.
+      Here is the regex you should actually use, backed by analysis of <strong>5,280,739 real
+      addresses</strong>, plus a live tester so you can prove it on your own inputs.
+    </p>
+
+    <figure class="codecard" aria-label="Recommended practical email regex">
+      <figcaption>The practical default (ASCII alphanumeric, single dots, dashes)</figcaption>
+      <pre><code id="hero-regex">^[A-Za-z0-9](?:[A-Za-z0-9-]|\.(?!\.)){0,62}[A-Za-z0-9]@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$</code></pre>
+      <button class="copy-btn" data-copy-target="hero-regex">copy</button>
+    </figure>
+
+    <p class="hero-claim">
+      This pattern reaches better than <strong>five-nines accuracy</strong> against consumer email
+      addresses in the wild. Below you can test it, see the data behind it, and build the
+      full RFC-compliant version chunk by chunk.
+    </p>
+  </section>
+
+  <!-- ============ WORKBENCH (TOOL FIRST) ============ -->
+  <section id="workbench" class="wrap section">
+    <h2>Live tester</h2>
+    <p class="section-intro">
+      Type or paste an address. The matched substring is split into its capture groups, and the
+      verdict updates as you type. Flip the speed: <strong>Realistic</strong> runs the practical
+      pattern that covers 99.999% of real addresses; <strong>Ludicrous</strong> runs the full RFC 5321
+      compliance attempt, IPv4 and IPv6 address literals included. This switch drives the tester and
+      the test suite below.
+    </p>
+
+    <div class="tester" data-component="tester">
+      <div class="mode-row">
+        <span class="mode-label">speed</span>
+        <div class="speed-toggle" role="group" aria-label="Validator speed">
+          <button class="speed-btn is-active" data-speed="realistic" aria-pressed="true">Realistic</button>
+          <button class="speed-btn" data-speed="ludicrous" aria-pressed="false">Ludicrous</button>
+        </div>
+        <span class="mode-hint">drives every validator on the page</span>
+      </div>
+
+      <div class="tester-input">
+        <span class="prompt">&gt;</span>
+        <input id="email-input" type="text" spellcheck="false" autocomplete="off"
+               value="john.doe@example.com" aria-label="Email address to test">
+      </div>
+
+      <div class="tester-output">
+        <div id="verdict" class="verdict" aria-live="polite"></div>
+        <div class="highlight-wrap">
+          <div id="highlight" class="highlight" aria-hidden="true"></div>
+        </div>
+        <p id="mode-note" class="mode-note"></p>
+      </div>
+
+      <details class="active-pattern">
+        <summary>Show the active pattern</summary>
+        <pre><code id="active-pattern-code"></code></pre>
+      </details>
+    </div>
+  </section>
+
+  <!-- ============ THESIS ============ -->
+  <section id="thesis" class="wrap section">
+    <h2>RFC 5321 supersedes RFC 5322</h2>
+    <p>
+      The famous argument that email validation by regex is futile rests on RFC 5322, which treats an
+      email address as a generic message header. Under that reading, parenthesised comments and folded
+      whitespace are legal even inside a domain name, and the canonical "futility" test suite marks
+      addresses with comments and Unicode as valid.
+    </p>
+    <p>
+      This conflates two standards. Because SMTP is universal for email transmission, no examination of
+      address formatting is complete without RFC 5321, and RFC 5321 is explicit: the domain portion of an
+      address is <em>restricted, for SMTP purposes, to a sequence of letters, digits, and hyphens drawn
+      from the ASCII character set</em>. RFC 5321 has the final word, and it makes the problem far simpler,
+      especially for bounding string length.
+    </p>
+
+    <div class="table-wrap">
+      <table class="cmp">
+        <caption>What each standard governs</caption>
+        <thead>
+          <tr><th scope="col">Aspect</th><th scope="col">RFC 5322 (message header)</th><th scope="col">RFC 5321 (SMTP address)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Domain characters</td><td>Comments, whitespace, broad character set</td><td>ASCII letters, digits, hyphens only</td></tr>
+          <tr><td>Comments in parentheses</td><td>Legal, even in the domain</td><td>Not part of the deliverable address</td></tr>
+          <tr><td>Folded whitespace</td><td>Legal (multi-line headers)</td><td>Not applicable to delivery</td></tr>
+          <tr><td>Practical relevance</td><td>Theoretical edge cases</td><td>What actually gets delivered</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ PRIMARY RESEARCH ============ -->
+  <section id="research" class="wrap section">
+    <h2>The data: email addresses in the wild</h2>
+    <p class="section-intro">
+      The right measure for the practical programmer is not the standard, it is what real mailbox
+      providers actually permit. Here is what the data says.
+    </p>
+
+    <div class="stat-callout" id="key-statistic">
+      <p class="stat-big">82% &rarr; 97% &rarr; ~100%</p>
+      <p class="stat-explain">
+        Across <strong>5,280,739 real email addresses</strong>: 82% contain only ASCII alphanumeric
+        characters; a further 15% add only dots (97% total); a final 3% add only dashes (a rounded 100%).
+      </p>
+      <p class="stat-method">
+        Sample drawn from 115 million accounts. 99% confidence level, 0.055% margin of error for the
+        general population of internet email. Source: primary analysis by Adam Z. Wasserman.
+      </p>
+    </div>
+
+    <h3>Consumer email: character distribution</h3>
+    <div class="chart" aria-label="Cumulative character coverage of consumer email addresses">
+      <div class="bar-row"><span class="bar-label">ASCII alphanumeric only</span>
+        <span class="bar"><span class="bar-fill" style="width:82%"></span></span><span class="bar-val">82%</span></div>
+      <div class="bar-row"><span class="bar-label">+ dots</span>
+        <span class="bar"><span class="bar-fill" style="width:97%"></span></span><span class="bar-val">97%</span></div>
+      <div class="bar-row"><span class="bar-label">+ dashes</span>
+        <span class="bar"><span class="bar-fill" style="width:100%"></span></span><span class="bar-val">~100%</span></div>
+    </div>
+    <p class="fineprint">
+      Rare features in the same sample: underscores 0.00072% (38 addresses), plus signs 0.00051%
+      (27 addresses), Unicode 0.00002% (one single address). Assuming ASCII alphanumeric, dots, and
+      dashes gives better than five-nines accuracy for consumer email.
+    </p>
+
+    <h3>Business email: the top ten hosts</h3>
+    <p>
+      Of 6,771,269 companies using 91 hosting solutions, the Pareto distribution holds: 95.19% of
+      mailboxes sit with just ten providers. The largest three all permit only ASCII letters, numbers,
+      and dots when creating a mailbox.
+    </p>
+    <div class="chart" aria-label="Market share of business email hosts">
+      <div class="bar-row"><span class="bar-label">Gmail for Business</span>
+        <span class="bar"><span class="bar-fill" style="width:34.35%"></span></span><span class="bar-val">34.35%</span></div>
+      <div class="bar-row"><span class="bar-label">Microsoft Exchange Online</span>
+        <span class="bar"><span class="bar-fill" style="width:33.60%"></span></span><span class="bar-val">33.60%</span></div>
+      <div class="bar-row"><span class="bar-label">GoDaddy (Microsoft 365)</span>
+        <span class="bar"><span class="bar-fill" style="width:14.71%"></span></span><span class="bar-val">14.71%</span></div>
+      <div class="bar-row"><span class="bar-label">7 further providers</span>
+        <span class="bar"><span class="bar-fill" style="width:12.53%"></span></span><span class="bar-val">12.53%</span></div>
+    </div>
+    <p class="fineprint">Business-host data from Datanyze.</p>
+  </section>
+
+  <!-- ============ USE CASES + DECISION WIDGET ============ -->
+  <section id="usecases" class="wrap section">
+    <h2>When do you actually need this?</h2>
+    <p class="section-intro">
+      Pick what you are building. The honest answer is often "do not lean on the regex alone."
+    </p>
+
+    <div class="decider" data-component="decider">
+      <div class="decider-choices" role="group" aria-label="Use case">
+        <button class="chip is-active" data-case="signup">New account / signup</button>
+        <button class="chip" data-case="contact">Contact form</button>
+        <button class="chip" data-case="logs">Parsing logs / bulk text</button>
+      </div>
+      <div id="decider-out" class="decider-out" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- ============ REDACTION PLAYGROUND ============ -->
+  <section id="redaction" class="wrap section">
+    <h2>Log-redaction playground</h2>
+    <p class="section-intro">
+      The real use case for email regex is mining and anonymising large volumes of unstructured text:
+      referrer logs, exports, dumps. Paste some text below and redact every address in one pass. This
+      is the kind of job an in-house team can declare impossible and a single compiled regex can finish
+      on a laptop in minutes.
+    </p>
+
+    <div class="redactor" data-component="redactor">
+      <label class="field-label" for="redact-in">Input text</label>
+      <textarea id="redact-in" spellcheck="false" rows="6">User jane.smith@acme.co.uk hit /imagefile@2x.png from referrer https://x.test/?u=bob%40example.org and pinged ops-team@mail.server-01.net</textarea>
+      <div class="redactor-actions">
+        <button id="redact-run" class="primary-btn">redact</button>
+        <span id="redact-count" class="redact-count"></span>
+      </div>
+      <label class="field-label" for="redact-out">Redacted output</label>
+      <pre id="redact-out" class="redact-out"></pre>
+    </div>
+    <p class="fineprint">
+      The browser version above is a JavaScript adaptation. It also handles the URL-encoded
+      <code>%40</code> form of <code>@</code> while skipping image filenames such as
+      <code>imagefile@2x.png</code>, the same collision the original log-mining job had to dodge.
+    </p>
+  </section>
+
+  <!-- ============ COOKBOOK ============ -->
+  <section id="cookbook" class="wrap section">
+    <h2>The annotated cookbook</h2>
+    <p class="section-intro">
+      An email address is a mailbox, an <code>@</code> delimiter, and a domain. Below are composable
+      chunks for each part. Toggle the ones you want and watch the assembled pattern build up. Each
+      chunk carries the annotation explaining what rule it enforces.
+    </p>
+
+    <div class="cookbook" data-component="cookbook">
+      <div id="chunk-list" class="chunk-list"></div>
+      <figure class="codecard assembled">
+        <figcaption>Assembled pattern</figcaption>
+        <pre><code id="assembled-code"></code></pre>
+        <button class="copy-btn" data-copy-target="assembled-code">copy</button>
+      </figure>
+    </div>
+
+    <h3 id="balancing-parens">Balancing parentheses: the open challenge</h3>
+    <p>
+      The cookbook leaves one rule unsolved: parenthesised comments are legal only when the parentheses
+      are balanced, and so are quoted strings. Can standard regex enforce that? The honest answer is
+      layered, because it depends entirely on what you count as "standard regex."
+    </p>
+
+    <h4 class="sub">Pure regular expressions provably cannot</h4>
+    <p>
+      Balanced parentheses to arbitrary depth is the Dyck language, which is context-free but not regular.
+      The pumping lemma proves no finite automaton can do it: a true regular expression has no memory to
+      count how deep it has gone. If "standard" means formally regular, this is a hard no, and it is a
+      theorem rather than a failure of cleverness.
+    </p>
+
+    <h4 class="sub">But real engines are not regular, and three of them can</h4>
+    <figure class="codecard">
+      <figcaption>1. Recursion (PCRE, Perl, Ruby, Python <code>regex</code> module)</figcaption>
+      <pre><code id="paren-pcre">(?&lt;paren&gt;\((?:[^()]|(?&amp;paren))*\))</code></pre>
+      <button class="copy-btn" data-copy-target="paren-pcre">copy</button>
+    </figure>
+    <p class="fineprint">
+      <code>(?&amp;paren)</code> recurses into the named group, so it matches nesting to any depth. Python's
+      standard-library <code>re</code> does not support this; the third-party <code>regex</code> module does.
+    </p>
+
+    <figure class="codecard">
+      <figcaption>2. .NET balancing groups (matches and validates in one pattern)</figcaption>
+      <pre><code id="paren-net">^(?:[^()]|\((?&lt;d&gt;)|\)(?&lt;-d&gt;))*(?(d)(?!))$</code></pre>
+      <button class="copy-btn" data-copy-target="paren-net">copy</button>
+    </figure>
+    <p class="fineprint">
+      <code>(?&lt;d&gt;)</code> pushes on an open paren, <code>(?&lt;-d&gt;)</code> pops on a close (and fails
+      on an unmatched closer), and <code>(?(d)(?!))</code> fails at the end if anything is still open.
+    </p>
+
+    <figure class="codecard">
+      <figcaption>3. Bounded depth, works in any engine including JavaScript (depth &le; 2)</figcaption>
+      <pre><code id="paren-bounded">\((?:[^()]|\((?:[^()])*\))*\)</code></pre>
+      <button class="copy-btn" data-copy-target="paren-bounded">copy</button>
+    </figure>
+    <p class="fineprint">
+      Each extra level of nesting is one more nested copy. The result is genuinely regular because the
+      depth is finite. JavaScript has no recursion and no balancing groups, so this unrolling is the only
+      regex option in the browser.
+    </p>
+
+    <h4 class="sub">The pragmatic answer: count, do not match</h4>
+    <p>
+      Balance-checking is the textbook case where regex is the wrong tool and a one-pass counter is
+      trivially correct, linear time, and engine-independent. And since the data showed parenthesised
+      comments are statistically near zero in the wild, this check rarely earns its keep at all.
+    </p>
+    <figure class="codecard">
+      <figcaption>The simplest thing that could possibly work</figcaption>
+      <pre><code id="paren-counter">function parensBalanced(s) {
+  var depth = 0;
+  for (var i = 0; i &lt; s.length; i++) {
+    var c = s[i];
+    if (c === "\\") { i++; continue; }   // skip escaped char
+    else if (c === "(") depth++;
+    else if (c === ")" &amp;&amp; --depth &lt; 0) return false;
+  }
+  return depth === 0;
+}</code></pre>
+      <button class="copy-btn" data-copy-target="paren-counter">copy</button>
+    </figure>
+
+    <div class="paren-checker" data-component="parens">
+      <label class="field-label" for="paren-input">Try the counter (parentheses coloured by nesting depth)</label>
+      <div class="tester-input">
+        <span class="prompt">&gt;</span>
+        <input id="paren-input" type="text" spellcheck="false" autocomplete="off"
+               value="bob(work(urgent))@example.com" aria-label="String to check for balanced parentheses">
+      </div>
+      <div id="paren-verdict" class="verdict" aria-live="polite"></div>
+      <div class="highlight-wrap"><div id="paren-highlight" class="highlight" aria-hidden="true"></div></div>
+    </div>
+  </section>
+
+  <!-- ============ TEST SUITE ============ -->
+  <section id="tests" class="wrap section">
+    <h2>Run the test suite</h2>
+    <p class="section-intro">
+      These cases include the contentious ones from the original "futility" suite plus a few of our own.
+      The runner applies both live patterns to every address, and the column matching the current speed
+      is highlighted, so you can see exactly where realistic and ludicrous part ways.
+    </p>
+    <button id="run-tests" class="primary-btn">run tests</button>
+    <div class="table-wrap">
+      <table class="tests" id="tests-table">
+        <thead>
+          <tr><th scope="col">Address</th><th scope="col">Realistic</th><th scope="col">Ludicrous</th><th scope="col">Note</th></tr>
+        </thead>
+        <tbody id="tests-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ LUDICROUS SPEED ============ -->
+  <section id="ludicrous" class="wrap section">
+    <h2>Ludicrous speed</h2>
+    <p class="section-intro">
+      The realistic regex stops at DNS domains because that is what 99.999% of real addresses use.
+      But RFC 5321 also permits <em>address literals</em>: a bracketed IPv4 address, or the full zoo of
+      IPv6 forms. Going to ludicrous speed means actually matching all of them. Unlike the RFC 5322
+      Full Monty below, this one has no POSIX classes, so it runs natively in your browser. Flip the
+      switch and every validator on the page upgrades to it.
+    </p>
+
+    <div class="ludicrous-banner">
+      <p>Take the whole page to ludicrous speed.</p>
+      <div class="speed-toggle" role="group" aria-label="Validator speed">
+        <button class="speed-btn is-active" data-speed="realistic" aria-pressed="true">Realistic</button>
+        <button class="speed-btn" data-speed="ludicrous" aria-pressed="false">Ludicrous</button>
+      </div>
+    </div>
+
+    <figure class="codecard">
+      <figcaption>The RFC 5321 compliance attempt: mailbox + @ + (DNS | IPv4 literal | IPv6 literal)</figcaption>
+      <pre><code id="ludicrous-code"></code></pre>
+      <button class="copy-btn" data-copy-target="ludicrous-code">copy</button>
+    </figure>
+    <p class="fineprint">
+      Try <code>john@[192.168.1.1]</code> or <code>user@[IPv6:2001:db8::1]</code> in the tester while
+      on ludicrous: they pass here and fail on realistic. The cost of going ludicrous is a pattern that
+      is dramatically larger, harder to read, and slower, in exchange for matching address forms that
+      essentially never appear in real signups. It is the regex equivalent of strapping a bigger engine
+      to a car you only ever drive to the shops.
+    </p>
+    <p>
+      Want to go even faster? RFC 5322 takes you beyond ludicrous, straight to plaid.
+      That one is in the <a href="#fullmonty">Full Monty</a> below, and it cannot even run in a browser.
+    </p>
+  </section>
+
+  <!-- ============ FULL MONTY ============ -->
+  <section id="fullmonty" class="wrap section">
+    <h2>The Full Monty: gone to plaid</h2>
+    <p class="section-intro">
+      Beyond ludicrous lies RFC 5322 itself. For completeness, here is the assembled pattern with named subgroups for the mailbox,
+      single-dot rule, folded whitespace, the <code>@</code> delimiter, DNS domains, and IPv4 and IPv6
+      address literals. It uses POSIX character classes and a folded-whitespace construct that the
+      JavaScript regex engine does not support, so it is shown here as copyable Python.
+    </p>
+    <figure class="codecard">
+      <figcaption>Python (compile with <code>re.compile</code>, or open in Regex101)</figcaption>
+      <pre><code id="fullmonty-code">import re
+
+# Mailbox + @ delimiter + domain (DNS, IPv4, IPv6 literals).
+# Drop the leading ^ if you are searching inside a longer string
+# rather than validating a whole string.
+EMAIL = re.compile(r"""
+  ^(?P&lt;mailbox&gt;(
+      [a-zA-Z0-9+!\#$%&amp;'*\-/=?_{}|~]
+    | (?P&lt;singleDot&gt;(?&lt;!\.)(?&lt;!^)\.(?!\.))
+   ){1,64})
+  \s?(?P&lt;atSign&gt;(?&lt;!-)(?&lt;!\.)@(?!@))
+  (?P&lt;domain&gt;
+      (?P&lt;dns&gt;[[:alnum:]]([[:alnum:]\-]{0,63}\.){1,24}[[:alnum:]\-]{1,63}[[:alnum:]])
+    | (?P&lt;IPv4&gt;\[((?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\])
+  )$
+""", re.VERBOSE)</code></pre>
+      <button class="copy-btn" data-copy-target="fullmonty-code">copy</button>
+    </figure>
+    <p>
+      <a class="ext" href="https://regex101.com" target="_blank" rel="noopener">Open the complete pattern and test data on Regex101</a>.
+      The full version also enumerates every IPv6 and IPv6-mapped-IPv4 form (full, compressed, and the
+      four edge forms each), named so each subgroup can be picked apart.
+    </p>
+    <p class="plaid-hint">
+      <button id="plaid-trigger" class="primary-btn plaid-btn" type="button">▶ Engage plaid speed</button>
+      <span class="fineprint">No regex engine survives the jump. (Psst: you can also just type the word anywhere.)</span>
+    </p>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section id="faq" class="wrap section">
+    <h2>Frequently asked questions</h2>
+
+    <div class="faq">
+      <h3>Can you validate an email address with regex?</h3>
+      <p>
+        Yes, for practical purposes. RFC 5321 restricts the domain to ASCII letters, digits, and hyphens,
+        which is straightforward to match. The mailbox has more latitude, but real-world data shows that
+        matching ASCII alphanumeric characters, dots, and dashes covers better than 99.999% of consumer
+        addresses. What regex cannot tell you is whether the address actually exists. For that, send a
+        verification link.
+      </p>
+
+      <h3>Should I use RFC 5321 or RFC 5322 for email validation?</h3>
+      <p>
+        RFC 5321. It governs SMTP, which is how email is actually transmitted, and it restricts the domain
+        to ASCII letters, digits, and hyphens. RFC 5322 describes generic message headers and permits
+        comments and folded whitespace that never appear in deliverable addresses.
+      </p>
+
+      <h3>What email regex should I actually use?</h3>
+      <p>
+        For signup, contact forms, and log parsing, match ASCII alphanumeric characters, single dots, and
+        dashes in the mailbox, an <code>@</code>, and a DNS-parsable domain. That is the practical default
+        at the top of this page. Confirm existence with a fire-and-forget verification link rather than
+        trusting the string alone.
+      </p>
+
+      <h3>Why not just match every RFC 5322 edge case?</h3>
+      <p>
+        Because those cases almost never occur. In 5.28 million addresses, exactly one used Unicode and
+        only 27 used a plus sign. Spending your time on quoted strings and parenthesised comments is
+        optimising for inputs that do not exist. Ask what the simplest thing that could possibly work is,
+        then build that.
+      </p>
+
+      <h3>Can regex match balanced parentheses?</h3>
+      <p>
+        Not with a formally regular expression: balanced parentheses form the Dyck language, which is
+        context-free, not regular, and the pumping lemma proves no finite automaton can count nesting
+        depth. Real engines that go beyond regular languages can: PCRE and Perl via recursion
+        (<code>(?&amp;name)</code>), and .NET via balancing groups. JavaScript has neither, so in the
+        browser you must either unroll to a fixed depth or, better, count with a one-pass linear scan.
+        See <a href="#balancing-parens">balancing parentheses</a> above.
+      </p>
+
+      <h3>How do I redact emails from large log files quickly?</h3>
+      <p>
+        Compile a single regex and apply it across the file in one pass rather than iterating character by
+        character. Try it in the <a href="#redaction">redaction playground</a> above. A compiled pattern
+        can process hundreds of millions of lines on a laptop in minutes.
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p class="foot-brand">honest<span class="cursor">_</span></p>
+    <p>
+      By <a href="https://adamzacharywasserman.com">Adam Z. Wasserman</a>. Part of the Honest project.
+      Based on the article
+      <a href="https://hackernoon.com/on-the-practicality-of-regex-for-email-address-processing">On the Practicality of Regex for Email Address Processing</a>.
+    </p>
+    <p class="fineprint">Regex testing runs entirely in your browser. Nothing you type is sent anywhere.</p>
+  </div>
+</footer>
+
+<!-- Spaceballs easter egg: type "plaid" anywhere, or hit the button in the Full Monty section -->
+<div id="plaid-overlay" aria-hidden="true">
+  <div class="warp"></div>
+  <div class="plaid"></div>
+  <p class="plaid-caption">They've gone to <span>plaid</span>!</p>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

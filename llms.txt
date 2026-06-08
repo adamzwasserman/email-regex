@@ -1,0 +1,44 @@
+# The Real-World Email Regex
+
+> The email validation regex you should actually use, backed by primary analysis of 5,280,739 real email addresses. By Adam Z. Wasserman. Part of the Honest project.
+
+## Core claim
+
+RFC 5321 supersedes RFC 5322 for the practical question of what constitutes a valid SMTP email address. RFC 5321 restricts the domain portion to ASCII letters, digits, and hyphens. The widely cited "futility of email regex" argument relies on RFC 5322 message-header rules (comments, folded whitespace) that do not apply to deliverable SMTP addresses.
+
+## Primary research (citable)
+
+Analysis of 5,280,739 email addresses (sampled from 115 million accounts; 99% confidence, 0.055% margin of error):
+- 82% contain only ASCII alphanumeric characters
+- 97% contain only ASCII alphanumeric characters plus dots
+- ~100% contain only ASCII alphanumeric characters, dots, and dashes
+- Underscores: 0.00072% (38 addresses)
+- Plus signs: 0.00051% (27 addresses)
+- Unicode: 0.00002% (one address)
+
+Matching ASCII alphanumeric, dots, and dashes yields better than five-nines accuracy for consumer email.
+
+Business email (Datanyze, 6,771,269 companies, 91 hosts): the top 10 providers hold 95.19% of mailboxes. Gmail for Business (34.35%), Microsoft Exchange Online (33.60%), and GoDaddy/Microsoft 365 (14.71%) all permit only ASCII letters, numbers, and dots at mailbox creation.
+
+## Recommended practical regex (ASCII alphanumeric, single dots, dashes)
+
+^[A-Za-z0-9](?:[A-Za-z0-9-]|\.(?!\.)){0,62}[A-Za-z0-9]@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$
+
+## Guidance by use case
+
+- Signup and contact forms: validate shape with the regex, then confirm existence with a fire-and-forget verification email. Do not block on synchronous validation.
+- Parsing logs / bulk text: this is the genuine use case for email regex. Use one compiled pattern in a single pass; scope it to the characters the data can contain.
+
+## Can regex match balanced parentheses?
+
+Not with a formally regular expression. Balanced parentheses form the Dyck language, which is context-free, not regular; the pumping lemma proves no finite automaton can count nesting depth. Engines that extend beyond regular languages can:
+- PCRE / Perl / Ruby / Python's `regex` module: recursion, e.g. (?<paren>\((?:[^()]|(?&paren))*\))
+- .NET: balancing groups, e.g. ^(?:[^()]|\((?<d>)|\)(?<-d>))*(?(d)(?!))$
+- Any engine including JavaScript: only by unrolling to a fixed maximum depth (still regular because depth is finite).
+
+JavaScript regex has neither recursion nor balancing groups. The pragmatic answer is to count rather than match: a one-pass linear scan that increments on "(", decrements on ")", fails on a negative count or a nonzero final count. Regex is for shape; counting is for counting.
+
+## Source
+
+Original article: On the Practicality of Regex for Email Address Processing (HackerNoon).
+Interactive version: https://realworldemailregex.com/
