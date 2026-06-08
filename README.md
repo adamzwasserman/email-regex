@@ -42,4 +42,20 @@ as copyable Python. The redaction pattern is a JavaScript adaptation of the orig
 
 ## Deploy
 
-Pure static. Drop the directory on any static host (Render static site, etc.). No build step.
+Pure static, no build step. Site files live in `public/`.
+
+**Live:** https://emailregex.honestcode.software/
+- Hosting: Render static site `email-regex` (`srv-d8jgubs8aovs739c1k80`), publish path `public`, auto-deploy on push to `main`.
+- Domain: `emailregex.honestcode.software`, a Cloudflare-managed subdomain of `honestcode.software` (DNS-only CNAME to `email-regex.onrender.com`), covered by the `*.honestcode.software` wildcard cert.
+- Also reachable at https://email-regex.onrender.com/ (canonical points to the custom domain).
+
+To switch hosting to Cloudflare Pages via `wrangler pages deploy public`, the Cloudflare API token needs `Account > Cloudflare Pages > Edit` (the current token only has zone/DNS scope).
+
+## SEO/GEO status
+
+Done (Tier 1): semantic HTML, single H1, TechArticle + Dataset + FAQPage + HowTo JSON-LD,
+per-language regex sections, OG image, AI-crawler allowlist in robots.txt, `index.md` + `llms.txt`,
+sitemap, attributed citable statistic.
+
+Remaining (you-driven): Google Search Console + Bing Webmaster (submit sitemap), IndexNow ping,
+backlinks (relink the HackerNoon original, Show HN, Reddit, dev.to), analytics.
