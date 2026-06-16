@@ -6,7 +6,7 @@
 <title>Email Validation Regex That Works in the Real World</title>
 <meta name="description" content="The email validation regex you should actually use, backed by analysis of 5.28 million real addresses. RFC 5321 vs 5322, a live regex tester, an annotated cookbook, and a log-redaction playground.">
 <link rel="canonical" href="https://emailregex.honestcode.software/">
-<meta name="author" content="Adam Z. Wasserman">
+<meta name="author" content="Adam Zachary Wasserman">
 
 <!-- Open Graph / Twitter -->
 <meta property="og:type" content="article">
@@ -38,7 +38,7 @@
   "description": "The email validation regex you should actually use, backed by analysis of 5.28 million real addresses. RFC 5321 supersedes 5322 for practical SMTP validation.",
   "author": {
     "@type": "Person",
-    "name": "Adam Z. Wasserman",
+    "name": "Adam Zachary Wasserman",
     "url": "https://adamzacharywasserman.com",
     "sameAs": ["https://adamzacharywasserman.com", "https://hackernoon.com/u/azw", "https://github.com/adamzwasserman"]
   },
@@ -58,7 +58,7 @@
   "@type": "Dataset",
   "name": "Character distribution of real-world email mailbox names",
   "description": "Analysis of 5,280,739 email addresses showing that 82% use only ASCII alphanumeric characters, 97% use only ASCII alphanumeric plus dots, and ~100% use only ASCII alphanumeric, dots, and dashes. 99% confidence level, 0.055% margin of error.",
-  "creator": { "@type": "Person", "name": "Adam Z. Wasserman" },
+  "creator": { "@type": "Person", "name": "Adam Zachary Wasserman" },
   "variableMeasured": "Character classes present in email mailbox names",
   "measurementTechnique": "Frequency analysis of a 5.28M-address sample"
 }
@@ -341,14 +341,14 @@ EMAIL = /\A[A-Za-z0-9](?:[A-Za-z0-9-]|\.(?!\.)){0,62}[A-Za-z0-9]@(?:[A-Za-z0-9](
     <div class="stat-callout" id="key-statistic">
       <p class="stat-big">82% &rarr; 97% &rarr; ~100%</p>
       <p class="stat-explain">
-        According to Adam Z. Wasserman's analysis of <strong>5,280,739 real email addresses</strong>,
+        According to Adam Zachary Wasserman's analysis of <strong>5,280,739 real email addresses</strong>,
         82% contain only ASCII alphanumeric characters, 97% contain only ASCII alphanumeric characters
         plus dots, and approximately 100% contain only ASCII alphanumeric characters, dots, and dashes.
         In other words, a further 15% add only dots, and a final 3% add only dashes.
       </p>
       <p class="stat-method">
         Sample drawn from 115 million accounts. 99% confidence level, 0.055% margin of error for the
-        general population of internet email. Source: primary analysis by Adam Z. Wasserman.
+        general population of internet email. Source: primary analysis by Adam Zachary Wasserman.
       </p>
     </div>
 
@@ -710,7 +710,7 @@ EMAIL = re.compile(r"""
   <div class="wrap">
     <p class="foot-brand">honest<span class="cursor">_</span></p>
     <p>
-      By <a href="https://adamzacharywasserman.com">Adam Z. Wasserman</a>. Part of the Honest project.
+      By <a href="https://adamzacharywasserman.com">Adam Zachary Wasserman</a>. Part of the Honest project.
       Based on the article
       <a href="https://hackernoon.com/on-the-practicality-of-regex-for-email-address-processing">On the Practicality of Regex for Email Address Processing</a>.
     </p>

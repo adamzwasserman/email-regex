@@ -1,6 +1,6 @@
 # The Real-World Email Regex
 
-> The email validation regex you should actually use, backed by primary analysis of 5,280,739 real email addresses. By Adam Z. Wasserman. Part of the Honest project.
+> The email validation regex you should actually use, backed by primary analysis of 5,280,739 real email addresses. By Adam Zachary Wasserman. Part of the Honest project.
 
 ## Core claim
 

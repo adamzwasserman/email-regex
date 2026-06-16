@@ -1,6 +1,6 @@
 # The Real-World Email Regex
 
-*The email validation regex you should actually use, backed by primary analysis of 5,280,739 real email addresses. By Adam Z. Wasserman. Part of the Honest project.*
+*The email validation regex you should actually use, backed by primary analysis of 5,280,739 real email addresses. By Adam Zachary Wasserman. Part of the Honest project.*
 
 Interactive version: https://emailregex.honestcode.software/
 
@@ -27,7 +27,7 @@ The popular "email regex is futile" argument relies on RFC 5322, which treats an
 
 ## The data: email addresses in the wild
 
-According to Adam Z. Wasserman's analysis of 5,280,739 real email addresses (sampled from 115 million accounts; 99% confidence, 0.055% margin of error):
+According to Adam Zachary Wasserman's analysis of 5,280,739 real email addresses (sampled from 115 million accounts; 99% confidence, 0.055% margin of error):
 
 - 82% contain only ASCII alphanumeric characters
 - 97% contain only ASCII alphanumeric characters plus dots
